@@ -17,8 +17,6 @@ matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from text2vec.corpora.corpora import Corpus, CorpusBuilder
-
 
 def euclidean_distance(x, y):
     """
@@ -184,55 +182,6 @@ def heatmap_confusion(mat, outpath):
     plt.savefig(outpath, dpi=PLOT_CONFIG.dpi, bbox_inches='tight')
     plt.close()
     return ax
-
-
-def build_temp_corpus(documents: List[dict], builder_path: str) -> Tuple[np.array, np.array]:
-    """constructs a temporary corpus that can be fed into a trained tensorflow
-    model for prediction.
-
-    Generates a temporary corpus on disk in the `./corpus_temp0` directory and
-    then deletes this directory before the method returns.
-
-    Arguments:
-
-        documents: List[dict]. List of documents to be converted into a corpus.
-            If documents is a list of str, then it is converted into a list of
-            dict to meet the requirement of CorpusBuilder.
-
-        builder_path: str. Path to corpus builder.
-
-    Returns:
-
-        inputs1, seqlens1: Tuple[np.array, np.array].
-
-            inputs1: np.array with shape (n_documents, n_tokens). Corpus. Each
-                row represents a document.
-
-            seqlens1: np.array with shape (n_documents,). Sequence length of each
-                document.
-    """
-    # KLUDGE: for required CorpusBuilder input format.
-    if isinstance(documents[0], str):
-        documents = [{'text': doc, '_id': i} for i, doc in enumerate(documents)]
-    corpus_path = './corpus_temp0'
-    try:
-        i = 1
-        while os.path.exists(corpus_path):
-            warnings.warn(f'{corpus_path} already exists. Checking if {corpus_path[:-1] + str(i)} can be created instead...')
-            corpus_path = corpus_path[:-1] + str(i)
-            i += 1
-        os.makedirs(corpus_path)
-        builder = CorpusBuilder(builder_path)
-        # KLUDGE: loads all data into memory rather than reading from disk.
-        corpus = Corpus(corpus_path, builder=builder)
-        corpus.build(documents, update_dict=False, overwrite=True)
-        inputs1 = np.array([doc for doc in corpus])
-        seqlens1 = np.loadtxt(os.path.join(corpus_path, corpus.seqlens_fname), dtype=np.int64)
-        shutil.rmtree(corpus_path)
-    except Exception as err:
-        shutil.rmtree(corpus_path)
-        raise err
-    return inputs1, seqlens1
 
 
 def count_params() -> Tuple[int, List[Tuple[str, int]]]:
