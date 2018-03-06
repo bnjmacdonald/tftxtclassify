@@ -42,7 +42,7 @@ class SiameseTextClassifier(TextClassifier):
 
         * use `SiameseTextClassifier` in the context of a tf.Session(). Example::
 
-            >>> from services.string_match.tf import SiameseTextClassifier
+            >>> from tftxtclassify.classifiers import SiameseTextClassifier
             >>> # load data, etc...
             >>> with tf.Session() as sess:
             >>>     clf = SiameseTextClassifier()
@@ -62,7 +62,7 @@ class SiameseTextClassifier(TextClassifier):
 
     Example::
 
-        >>> from services.string_match.tf import SiameseTextClassifier
+        >>> from tftxtclassify.classifiers import SiameseTextClassifier
         >>> # load data, etc...
         >>> with tf.Session() as sess:
         >>>     clf = SiameseTextClassifier(...)
