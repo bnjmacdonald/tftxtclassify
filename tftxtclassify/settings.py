@@ -1,10 +1,15 @@
 """project settings."""
 import os
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_DIR = os.path.abspath(os.path.join(BASE_DIR, '..'))
-DATA_DIR = os.path.join(PROJECT_DIR, 'data')
-OUTPUT_DIR = os.path.join(PROJECT_DIR, 'output')
-TEST_DIR = os.path.join(os.path.dirname(BASE_DIR), 'test')
+# path to main package
+PKG_PATH = os.path.dirname(os.path.abspath(__file__))
+# project path (one up from main package)
+PROJECT_PATH = os.path.abspath(os.path.join(PKG_PATH, '..'))
+# path to where data files are located
+DATA_PATH = os.path.join(PROJECT_PATH, 'data')
+# path to where output files are located (e.g. results of training/experiments)
+OUTPUT_PATH = os.path.join(PROJECT_PATH, 'output')
+# path to tests
+TEST_PATH = os.path.join(os.path.dirname(PKG_PATH), 'tests')
 
 if __name__ == '__main__':
-    print(PROJECT_DIR)
+    print(PROJECT_PATH)
