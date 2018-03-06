@@ -120,7 +120,7 @@ networks in tensorflow on text classification tasks.
 
         _perf_summary_op: tf.Tensor. Performance summary for Tensorboard (accuracy,
             f1, ...).
-        
+
         _preds_summary_op: tf.Tensor. Summary of predictions (e.g. logits).
 
         _trainable_params_summary_op: tf.Tensor. Summary of trainable parameters
@@ -567,20 +567,26 @@ networks in tensorflow on text classification tasks.
         # online samples batch to restrict attention to hardest examples.
         if self.config.online_sample is not None:
             if epoch > self.config.online_sample_after - 1 and (step + 1) % self.config.online_sample_every == 0:
-                hard_ix = self._online_sample(
-                    labels=labels_batch,
-                    n_keep=self.config.online_sample_n_keep,
-                    how=self.config.online_sample,
-                    feed_dict={self._inputs_batch: inputs_batch,
-                                self._seqlens_batch: seqlens_batch}
-                )
-                inputs_batch, seqlens_batch, labels_batch = self._subset_online_sample(
-                    hard_ix=hard_ix,
-                    how=self.config.online_sample,
-                    inputs=inputs_batch,
-                    seqlens=seqlens_batch,
-                    labels=labels_batch
-                )
+                try:
+                    hard_ix = self._online_sample(
+                        labels=labels_batch,
+                        n_keep=self.config.online_sample_n_keep,
+                        how=self.config.online_sample,
+                        feed_dict={self._inputs_batch: inputs_batch,
+                                    self._seqlens_batch: seqlens_batch}
+                    )
+                    if hard_ix is not None:
+                        inputs_batch, seqlens_batch, labels_batch = self._subset_online_sample(
+                            hard_ix=hard_ix,
+                            how=self.config.online_sample,
+                            inputs=inputs_batch,
+                            seqlens=seqlens_batch,
+                            labels=labels_batch
+                        )
+                except Exception as err:
+                    if self.verbosity > 1:
+                        warnings.warn(f'Tried to conduct online sampling on batch, but failed. '
+                                      f'Reason: {err}', RuntimeWarning)
         return inputs_batch, seqlens_batch, labels_batch
 
 
@@ -666,6 +672,8 @@ networks in tensorflow on text classification tasks.
                     then the "hard" negatives are 6th and 35th negatives in `labels`
                     and the "hard" positives are the 8th and 97th positives in `labels`.
 
+                NOTE: returns None if `n_keep < labels.shape[0]`.
+
         Todos:
 
             TODO: currently, "hard" examples are selected based on their absolute value,
@@ -673,15 +681,23 @@ networks in tensorflow on text classification tasks.
                 this method so that examples are weighted/selected based on their
                 direct contribution to the loss.
 
+            FIXME: there is a bug in small batch sizes, leading to a "all the
+                input array dimensions except for the concatenation axis must
+                match exactly" error. Fix this.
+
             TODO: implement online sampling for n_classes > 2. Currently only works if
                 n_classes ==2
         """
         how_choices = ['soft', 'hard', 'hard_positives', 'hard_negatives']
         assert how in how_choices, f'`how` must be in {how_choices}, but received {how}.'
-        assert n_keep < labels.shape[0], f'`n_keep` must be less than batch size, but {n_keep} >= {labels.shape[0]}.'
-        assert self.config.n_classes == 2 and np.unique(labels).shape[0] == 2, \
-            (f'online sampling currently only works when n_classes == 2, '
-             f'but found {np.unique(labels).shape[0]} unique classes in `labels`.')
+        assert self.config.n_classes == 2, (f'online sampling currently only works when '
+                                            f'n_classes == 2, but found {np.unique(labels).shape[0]} '
+                                            f'unique classes in `labels`.')
+        if n_keep > labels.shape[0]:
+            warnings.warn(f'`n_keep` must be less than batch size, but {n_keep} '
+                          f'>= {labels.shape[0]}. Returning None and skipping '
+                          f' online sampling.', RuntimeWarning)
+            return None
         with tf.name_scope('online_sample'):
             if how == 'soft':
                 # predicts logits for each example in minibatch.
@@ -727,7 +743,7 @@ networks in tensorflow on text classification tasks.
                 logits = self._predict_batch({k: v[sample_ix] for k, v in feed_dict.items()})
                 # hard_negatives: retrieve top_k highest logits.
                 # hard_positives: retrieve top_k lowest logits.
-                _, hard_ix = tf.nn.top_k(logits if how == 'hard_negatives' else -1 * logits, k=n_keep, name='top_k')
+                _, hard_ix = tf.nn.top_k(logits if how == 'hard_negatives' else -1 * logits, k=min(logits.shape[0], n_keep), name='top_k')
                 hard_ix = tf.reshape(hard_ix, [-1])
                 hard_ix = self.sess.run(hard_ix)
         if self.verbosity > 2:
@@ -1484,7 +1500,7 @@ networks in tensorflow on text classification tasks.
 
             TODO: only print out top N predicted values in the case of multi-class
                 models with many classes.
-            
+
             TODO: log these correct/incorrect predictions to tensorboard instead.
                 See, e.g., https://stackoverflow.com/questions/46220808/how-do-i-construct-an-arbitrary-text-summary-in-tensorflow
         """
@@ -1573,7 +1589,7 @@ networks in tensorflow on text classification tasks.
             self._perf_summary_op['validation'] = self._add_performance_summary_op()
             self._preds_summary_op['validation'] = self._add_preds_summary_op()
         self._trainable_params_summary_op = self._add_trainable_params_summary_op()
-        self._nontrainable_params_summary_op = self._add_nontrainable_params_summary_op()        
+        self._nontrainable_params_summary_op = self._add_nontrainable_params_summary_op()
         return None
 
 
