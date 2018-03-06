@@ -926,7 +926,7 @@ networks in tensorflow on text classification tasks.
             if self.config.classifier == 'mlp':
                 outputs = self._add_mlp_op(inputs=embeddings)
             elif self.config.classifier == 'rnn':
-                rnn_outputs = self._add_rnn_op(inputs=embeddings, bi=self.config.bidirectional, seqlens=self._seqlens_batch)
+                rnn_outputs = self._add_rnn_op(inputs=embeddings, bi=self.config.use_bidirectional, seqlens=self._seqlens_batch)
                 batch_size = tf.shape(self._inputs_batch)[0]
                 outputs = tf.gather_nd(rnn_outputs, tf.stack([tf.range(batch_size), self._seqlens_batch-1], axis=1))
             elif self.config.classifier == 'cnn':
@@ -937,7 +937,7 @@ networks in tensorflow on text classification tasks.
                 # KLUDGE: sets `n_layers` temporarily. Instead add an arg to _add_rnn_op?
                 self.config.n_layers = self.config.n_rnn_layers
                 # adds RNN layers.
-                rnn_outputs = self._add_rnn_op(inputs=embeddings, bi=self.config.bidirectional, seqlens=self._seqlens_batch)
+                rnn_outputs = self._add_rnn_op(inputs=embeddings, bi=self.config.use_bidirectional, seqlens=self._seqlens_batch)
                 # adds `channel` dimension for convolutional layer.
                 rnn_outputs = tf.expand_dims(rnn_outputs, -1)
                 # KLUDGE: sets `n_layers` temporarily. Instead add an arg to _add_cnn_op?

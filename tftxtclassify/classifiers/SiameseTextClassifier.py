@@ -397,8 +397,8 @@ class SiameseTextClassifier(TextClassifier):
                 outputs1 = self._add_mlp_op(inputs=embeddings1)
                 outputs2 = self._add_mlp_op(inputs=embeddings2)
             elif self.config.classifier == 'siamese-rnn':
-                rnn_outputs1 = self._add_rnn_op(inputs=embeddings1, bi=self.config.bidirectional, seqlens=self._seqlens1_batch)
-                rnn_outputs2 = self._add_rnn_op(inputs=embeddings2, bi=self.config.bidirectional, seqlens=self._seqlens2_batch)
+                rnn_outputs1 = self._add_rnn_op(inputs=embeddings1, bi=self.config.use_bidirectional, seqlens=self._seqlens1_batch)
+                rnn_outputs2 = self._add_rnn_op(inputs=embeddings2, bi=self.config.use_bidirectional, seqlens=self._seqlens2_batch)
                 batch_size = tf.shape(self._inputs1_batch)[0]
                 final_outputs1 = tf.gather_nd(rnn_outputs1, tf.stack([tf.range(batch_size), self._seqlens1_batch-1], axis=1))
                 final_outputs2 = tf.gather_nd(rnn_outputs2, tf.stack([tf.range(batch_size), self._seqlens2_batch-1], axis=1))
@@ -421,8 +421,8 @@ class SiameseTextClassifier(TextClassifier):
                 # KLUDGE: sets `n_layers` temporarily. Instead add an arg to _add_rnn_op?
                 self.config.n_layers = self.config.n_rnn_layers
                 # adds RNN layers.
-                rnn_outputs1 = self._add_rnn_op(inputs=embeddings1, bi=self.config.bidirectional, seqlens=self._seqlens1_batch)
-                rnn_outputs2 = self._add_rnn_op(inputs=embeddings2, bi=self.config.bidirectional, seqlens=self._seqlens2_batch)
+                rnn_outputs1 = self._add_rnn_op(inputs=embeddings1, bi=self.config.use_bidirectional, seqlens=self._seqlens1_batch)
+                rnn_outputs2 = self._add_rnn_op(inputs=embeddings2, bi=self.config.use_bidirectional, seqlens=self._seqlens2_batch)
                 # adds `channel` dimension for convolutional layer.
                 rnn_outputs1 = tf.expand_dims(rnn_outputs1, -1)
                 rnn_outputs2 = tf.expand_dims(rnn_outputs2, -1)

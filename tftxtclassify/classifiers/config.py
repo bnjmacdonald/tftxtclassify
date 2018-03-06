@@ -290,26 +290,26 @@ class RNNClassifierConfig(ClassifierConfig):
 
         NOTE: see ClassifierConfig for additional attributes.
 
-        bidirectional: bool = False. Use bidirectional RNN.
-
         cell_type: str = 'rnn'. Type of RNN cell.
 
         n_hidden: int = 100. Number of neurons in each hidden layer.
 
         use_attention: bool = False. Add attention mechanism.
 
+        use_bidirectional: bool = False. Use bidirectional RNN.
+
         **kwargs: other attributes to pass to `ClassifierConfig.__init__(**kwargs)`.
     """
     def __init__(self,
-                 bidirectional: bool = False,
                  cell_type: str = 'rnn',
                  n_hidden: int = 100,
                  use_attention: bool = False,
+                 use_bidirectional: bool = False,
                  **kwargs) -> None:
         super().__init__(**kwargs)
         if isinstance(n_hidden, int):
             n_hidden = [n_hidden]
-        self.bidirectional = bidirectional
+        self.use_bidirectional = use_bidirectional
         self.cell_type = cell_type
         self.n_hidden = n_hidden
         self.use_attention = use_attention
