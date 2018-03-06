@@ -165,8 +165,8 @@ class ClassifierConfig(object):
             None.
         """
         # raises warning if outpath not in `config`.
-        if not hasattr(self, 'outpath'):
-            warnings.warn('`outpath` does not exist in `self.config`. Classifier '
+        if not hasattr(self, 'outpath') or self.outpath is None:
+            warnings.warn('`self.config.outpath` does not exist or is None. Classifier '
                             'performance will not be saved.', RuntimeWarning)
         # raises error if `outpath` does not exist.
         elif not os.path.exists(self.outpath):
