@@ -7,7 +7,7 @@ with open(os.path.join(os.path.dirname(__file__), 'README.md')) as readme:
 setup(
     name='tftxtclassify',
     version='0.0.1',
-    packages=['tftxtclassify', 'tftxtclassify.classifiers'],
+    packages=['tftxtclassify', 'tftxtclassify.classifiers', 'tftxtclassify.search_spaces'],
     # include_package_data=True,
     license='GNU-LGPL-3.0',
     description='A library of tensorflow text classifiers, making it easy to flexibly '
@@ -18,7 +18,10 @@ setup(
     author_email='bnjmacdonald@gmail.com',
     install_requires = [
         'tensorflow==1.6.0',
-        'numpy'
+        'numpy',
+        'scikit-learn',
+        'hyperopt',
+        'networkx==1.11'
     ],
     zip_safe=False
 )
