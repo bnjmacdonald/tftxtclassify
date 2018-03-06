@@ -1,5 +1,5 @@
-"""Implements an abstract class for building a deep neural network in tensorflow
-to be trained on a text classification task.
+"""Implements the `TextClassifier` class for building and training deep neural
+networks in tensorflow on text classification tasks.
 
 Todos:
 
@@ -7,8 +7,13 @@ Todos:
         have multiple classes. This will require adding another if-else statement
         in `self._add_loss_op` and the prediction Ops.
 
-    TODO: revise CNNClassifierConfig to allow user to specify whether max-pooling
-        should be done after each convolutional layer.
+    TODO: revise `CNNClassifierConfig` to allow user to specify whether max-pooling
+        should be done after each convolutional layer (and what type of pooling
+        should be used).
+
+    TODO: allow user to specify type of each and every layer (e.g. mlp vs. rnn
+        vs. cnn) independently. May make sense for layer args to be a list of
+        dicts in `self.config`?
 
     TODO: add preds histogram to summaries.
 
@@ -17,15 +22,16 @@ Todos:
 
     TODO: add l2 regularization to final hidden layers.
 
-Extensions to the classifier:
+    TODO: implement functionality to allow for early stopping. (e.g. when loss
+        has stagnated, when loss has reached a certain point, when classifier
+        has been training for N hours).
 
-    * Pre-train character embeddings using a large corpus of legalistic text
-        with kenyan names, such as the Hansards or Kenya Gazettes. Train a
-        language model that seeks to predict the next character or predict the
-        word/next word from the current character.
+    TODO: replace usage of sklearn.metrics with tf metrics.
 
-    * Pre-train on larger person name disambiguation dataset.
-        e.g. https://github.com/dhwajraj/dataset-person-name-disambiguation.
+    TODO: allow `seqlens` to be optional.
+
+    TODO: add vocabulary metadata to embeddings visualization.
+    See https://www.tensorflow.org/versions/r1.1/get_started/embedding_viz.
 """
 
 import os
@@ -42,8 +48,8 @@ from tftxtclassify.classifiers.config import get_config_class, load_config, Clas
 
 
 class TextClassifier(object):
-    """Implements an abstract class for building a deep neural network in tensorflow
-    to be trained on a text classification task.
+    """Implements the `TextClassifier` class for building and training deep neural
+networks in tensorflow on text classification tasks.
 
     Uses word/character embeddings for inputs.
 
@@ -59,6 +65,7 @@ class TextClassifier(object):
 
         `restore`: restores an existing graph and classifier state.
 
+
     Terminology:
 
         "labels": array of output classes to be predicted.
@@ -70,14 +77,67 @@ class TextClassifier(object):
             if an input document has 10 characters/words, then `seqlen=10` for
             that document.
 
+
     Attributes:
+
+        sess: tf.Session. Tensorflow session.
+
+        config: ClassifierConfig = None. Configuration object containing
+            classifier configuration options (e.g. n_epochs, n_layers, etc.).
+            For details see the `ClassifierConfig` class.
+
+        vocabulary: np.array with shape (n_tokens,) = None. Vocabulary,
+            where position of each token corresponds to the token's int _id.
+            Example::
+
+                `np.array(['world', 'the', 'word', ...])`
+
+                At the moment, `vocabulary` is ONLY used to set `self.config.vocab_size`
+                (using `vocabulary.shape[0]`) and to print out the text of
+                correct/incorrect predictions.
+
+        verbosity: int = 0. Determines the amount of information that is
+            printed to stdout. Must be an integer between 0 and 3.
 
         _built: bool = False. True if self.build_graph() has been called.
             False otherwise.
 
-        TODO: ...
+        _outputs: tf.Tensor with shape (batch_size, outputs_size). Tensor of
+            hidden outputs returned by `self._add_main_op` that will be passed
+            to the final softmax layer.
+
+        _pred_logits: tf.Tensor with shape (batch_size,). Predicted logits.
+
+        _pred_probs: tf.Tensor with shape (batch_size,). Predicted
+            probabilities.
+
+        _pred_classes: tf.Tensor with shape (batch_size,). Predicted classes.
+
+        _train_op: tf.Operation. Train Op that is called in `sess.run(self._train_op)`
+            to execute a single training step.
+
+        _loss_summary_op: tf.Tensor. Loss summary for Tensorboard
+
+        _perf_summary_op: tf.Tensor. Performance summary for Tensorboard (accuracy,
+            f1, ...).
+
+        _trainable_params_summary_op: tf.Tensor. Summary of trainable parameters
+            for Tensorboard.
+
+        _nontrainable_params_summary_op: tf.Tensor. Summary of non-trainable tensors
+            for Tensorboard.
+
+        _writer: tf.summary.FileWriter. File writer.
+
+        _saver: tf.train.Saver. Saver.
+
+
+    Examples:
+
+        see `README.md`.
     """
 
+    # acceptable types of classifiers.
     ACCEPTABLE_CLASSIFIERS = ['mlp', 'rnn', 'cnn', 'rnn-cnn']
 
     def __init__(self,
@@ -89,15 +149,7 @@ class TextClassifier(object):
 
         Arguments:
 
-            sess: tf.Session.
-
-            outpath: str. Path to where graph should be saved.
-
-            vocabulary: np.array with shape (n_tokens,). Vocabulary, where position
-                of each token corresponds to the token's int _id.
-
-            config: ClassifierConfig = None. Configuration object containing
-                classifier configuration options (e.g. n_epochs, n_layers, etc.).
+            see `Attributes` descriptions in class __doc__.
         """
         self.sess = sess
         self.config = config
