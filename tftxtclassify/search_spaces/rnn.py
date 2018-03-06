@@ -37,21 +37,21 @@ def build_search_space(space: str = None) -> dict:
         max_n_layers = 4
         min_batch_size, max_batch_size = 30, 500
         min_embed_size, max_embed_size = 50, 200
-        min_max_seqlen, max_max_seqlen = 50, 500
+        min_n_features, max_n_features = 50, 500
         attention_choices = [False, True]
         bidirectional_choices = [False]
     elif space == 'light':
         max_n_layers = 2
         min_batch_size, max_batch_size = 30, 200
         min_embed_size, max_embed_size = 20, 100
-        min_max_seqlen, max_max_seqlen = 10, 200
+        min_n_features, max_n_features = 10, 200
         attention_choices = [False]
         bidirectional_choices = [False]
     elif space == 'heavy':
         max_n_layers = 8
         min_batch_size, max_batch_size = 100, 1000
         min_embed_size, max_embed_size = 100, 300
-        min_max_seqlen, max_max_seqlen = 200, 1000
+        min_n_features, max_n_features = 200, 1000
         attention_choices = [False, True]
         bidirectional_choices = [False, True]
     else:
@@ -65,7 +65,7 @@ def build_search_space(space: str = None) -> dict:
         'cell_type': hyperopt.hp.choice('cell_type', ['lstm', 'gru', 'rnn']),
         'use_attention': hyperopt.hp.choice('use_attention', attention_choices),
         'bidirectional': hyperopt.hp.choice('bidirectional', bidirectional_choices),
-        'max_seqlen': scope.int(hyperopt.hp.quniform('max_seqlen', min_max_seqlen, max_max_seqlen, 10)),
+        'n_features': scope.int(hyperopt.hp.quniform('n_features', min_n_features, max_n_features, 10)),
         'embed_size': scope.int(hyperopt.hp.quniform('embed_size', min_embed_size, max_embed_size, 10)),
         'batch_size': scope.int(hyperopt.hp.quniform('batch_size', min_batch_size, max_batch_size, 10)),
     }

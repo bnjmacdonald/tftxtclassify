@@ -48,7 +48,7 @@ class ClassifierConfig(object):
 
         learning_rate: float = 0.01. Learning rate.
 
-        max_grad_norm: float = 5. Maximum gradient norm at which to clip
+        max_grad_norm: float = 5.0. Maximum gradient norm at which to clip
             gradients. Does nothing if clip_gradients==False.
 
         n_classes: int = None. Number of label classes for output prediction.
@@ -116,6 +116,7 @@ class ClassifierConfig(object):
                  **kwargs) -> None:
         # deterministically defined properties.
         self.use_dropout = bool(dropout_p_keep)
+        # all other attributes
         self.use_class_weights = class_weights is not None
         self.batch_normalize_embeds = batch_normalize_embeds
         self.batch_normalize_layers = batch_normalize_layers

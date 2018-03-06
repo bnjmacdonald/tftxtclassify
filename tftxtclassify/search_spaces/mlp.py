@@ -37,17 +37,17 @@ def build_search_space(space: str = None) -> dict:
         max_n_layers = 4
         min_batch_size, max_batch_size = 30, 500
         min_embed_size, max_embed_size = 50, 200
-        min_max_seqlen, max_max_seqlen = 50, 500
+        min_n_features, max_n_features = 50, 500
     elif space == 'light':
         max_n_layers = 2
         min_batch_size, max_batch_size = 30, 200
         min_embed_size, max_embed_size = 20, 100
-        min_max_seqlen, max_max_seqlen = 10, 200
+        min_n_features, max_n_features = 10, 200
     elif space == 'heavy':
         max_n_layers = 8
         min_batch_size, max_batch_size = 100, 1000
         min_embed_size, max_embed_size = 100, 300
-        min_max_seqlen, max_max_seqlen = 200, 1000
+        min_n_features, max_n_features = 200, 1000
     else:
         raise RuntimeError(f'{space} not recognized.')
     search_space = {
@@ -56,7 +56,7 @@ def build_search_space(space: str = None) -> dict:
         'dropout_p_keep': hyperopt.hp.uniform('dropout_p_keep', 0.25, 1.0),
         'use_pretrained': hyperopt.hp.choice('use_pretrained', [False, True]),
         'embed_trainable': hyperopt.hp.choice('embed_trainable', [False, True]),
-        'max_seqlen': scope.int(hyperopt.hp.quniform('max_seqlen', min_max_seqlen, max_max_seqlen, 10)),
+        'n_features': scope.int(hyperopt.hp.quniform('n_features', min_n_features, max_n_features, 10)),
         'embed_size': scope.int(hyperopt.hp.quniform('embed_size', min_embed_size, max_embed_size, 10)),
         'batch_size': scope.int(hyperopt.hp.quniform('batch_size', min_batch_size, max_batch_size, 10)),
     }

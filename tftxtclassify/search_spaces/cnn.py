@@ -35,10 +35,13 @@ def build_search_space(space: str = None) -> dict:
     """
     if space in [None, 'default']:
         max_n_layers = 3
+        min_n_features, max_n_features = 50, 500
     elif space == 'light':
         max_n_layers = 2
+        min_n_features, max_n_features = 10, 200
     elif space == 'heavy':
         max_n_layers = 5
+        min_n_features, max_n_features = 200, 1000
     else:
         raise RuntimeError(f'{space} not recognized.')
     search_space = {
@@ -47,7 +50,7 @@ def build_search_space(space: str = None) -> dict:
         'dense_size': scope.int(hyperopt.hp.quniform('dense_size', 20, 300, 10)),
         'embed_size': scope.int(hyperopt.hp.quniform('embed_size', 20, 300, 10)),
         'dropout_p_keep': hyperopt.hp.uniform('dropout_p_keep', 0.25, 1.0),
-        'max_seqlen': scope.int(hyperopt.hp.quniform('max_seqlen', 10, 200, 10)),
+        'n_features': scope.int(hyperopt.hp.quniform('n_features', min_n_features, max_n_features, 10)),
         'use_pretrained': hyperopt.hp.choice('use_pretrained', [False, True]),
         'embed_trainable': hyperopt.hp.choice('embed_trainable', [False, True]),
         'layers': hyperopt.hp.choice('layers', [_build_layers_space(space, i + 1) for i in range(max_n_layers)])
