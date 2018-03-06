@@ -531,6 +531,9 @@ networks in tensorflow on text classification tasks.
             initializers.append(self._labels.initializer)
             feed_dict[self._labels_placeholder] = labels
         if pretrained_embeddings is not None:
+            assert self.config.embed_size == pretrained_embeddings.shape[1], \
+                (f'`self.config.embed_size` must equal `pretrained_embeddings.shape[1]`, '
+                 f'but {self.config.embed_size} != {pretrained_embeddings.shape[1]}.')
             with tf.variable_scope('embeddings', reuse=True):
                 initializers.append(tf.get_variable('tokens').initializer)
                 feed_dict[self._token_embeds_placeholder] = pretrained_embeddings
