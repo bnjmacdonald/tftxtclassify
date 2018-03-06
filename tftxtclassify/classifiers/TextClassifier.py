@@ -1425,13 +1425,19 @@ class TextClassifier(object):
             TODO: only print out top N predicted values in the case of multi-class
                 models with many classes.
         """
+        if self.vocabulary is None:
+            warnings.warn('Cannot print original text of each example, since `self.vocabulary` '
+                          'is None. Printing out integer _ids of each token instead.', RuntimeWarning)
         ix, = np.where(pred_classes == labels) if correct else np.where(pred_classes != labels)
         sample_type = 'correct' if correct else 'incorrect'
         if ix.shape[0] > 0:
             sampled = np.random.choice(ix, size=min(size, ix.shape[0]), replace=False)
             print(f'\n-----Sample of {sample_type} predictions-----')
             for this_ix in sampled:
-                input_str = sep.join([self.vocabulary[inputs[this_ix][i]] for i in range(seqlens[this_ix])])
+                if self.vocabulary is None:
+                    input_str = sep.join(inputs[this_ix][:seqlens[this_ix]].astype(str).tolist())
+                else:
+                    input_str = sep.join([self.vocabulary[inputs[this_ix][i]] for i in range(seqlens[this_ix])])
                 print(f'Example {this_ix}\n\tinput: {input_str}\n\ttrue class: {labels[this_ix]};'
                       f' predicted class: {pred_classes[this_ix]}; predicted value: {pred_logits[this_ix].round(4)}.')
         else:

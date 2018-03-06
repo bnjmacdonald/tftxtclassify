@@ -761,14 +761,21 @@ class SiameseTextClassifier(TextClassifier):
                            sep: str = ''):
         """prints correct / incorrect predictions to stdout for inspection.
         """
+        if self.vocabulary is None:
+            warnings.warn('Cannot print original text of each example, since `self.vocabulary` '
+                          'is None. Printing out integer _ids of each token instead.', RuntimeWarning)
         matching_ix, = np.where(pred_classes == labels) if correct else np.where(pred_classes != labels)
         sample_type = 'correct' if correct else 'incorrect'
         if matching_ix.shape[0] > 0:
             sampled = np.random.choice(matching_ix, size=min(size, matching_ix.shape[0]), replace=False)
             print(f'\n-----Sample of {sample_type} predictions-----')
             for ix in sampled:
-                input1_str = sep.join([self.vocabulary[inputs1[ix][i]] for i in range(seqlens1[ix])])
-                input2_str = sep.join([self.vocabulary[inputs2[ix][i]] for i in range(seqlens2[ix])])
+                if self.vocabulary is None:
+                    input1_str = sep.join(inputs1[matching_ix][:seqlens1[matching_ix]].astype(str).tolist())
+                    input2_str = sep.join(inputs2[matching_ix][:seqlens2[matching_ix]].astype(str).tolist())
+                else:
+                    input1_str = sep.join([self.vocabulary[inputs1[ix][i]] for i in range(seqlens1[ix])])
+                    input2_str = sep.join([self.vocabulary[inputs2[ix][i]] for i in range(seqlens2[ix])])
                 print(f'Example {ix}\n\tinput1: {input1_str}\n\tinput2: {input2_str}'
                       f'\n\ttrue class: {labels[ix]}; predicted class: {pred_classes[ix]};'
                       f' predicted value: {pred_logits[ix].round(4)}.')
