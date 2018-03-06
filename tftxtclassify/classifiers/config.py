@@ -186,6 +186,11 @@ class ClassifierConfig(object):
                 warnings.warn('`embed_trainable` must be True when `use_pretrained=False`. '
                               'Changing `embed_trainable` to True.', RuntimeWarning)
             self.embed_trainable = True
+        # `batch_size` must be smaller than or equal to `n_examples`
+        if self.batch_size > self.n_examples:
+            warnings.warn(f'`batch_size` is greater than `n_examples` ({self.batch_size} > {self.n_examples}). '
+                          f'Setting `batch_size` to {self.n_examples}.', RuntimeWarning)
+            self.batch_size = self.n_examples
         return None
 
 
