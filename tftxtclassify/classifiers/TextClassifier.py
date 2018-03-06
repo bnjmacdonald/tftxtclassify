@@ -103,6 +103,17 @@ class TextClassifier(object):
         self.config = config
         self.vocabulary = vocabulary
         self.verbosity = verbosity
+        if self.config is not None:
+            self.config._validate()
+            if self.vocabulary is not None:
+                if hasattr(self.config, 'vocab_size') and self.config.vocab_size != self.vocabulary.shape[0]:
+                    warnings.warn(f'`self.vocabulary` size does not match `self.config.vocab_size `'
+                                  f'({self.vocabulary.shape[0]} != {self.config.vocab_size}. Setting '
+                                  f'`self.config.vocab_size` to {self.vocabulary.shape[0]}.', RuntimeWarning)
+                    self.config.vocab_size = self.vocabulary.shape[0]
+        # other attributes
+        self._built = False
+        # graph tensors
         self._outputs = None
         self._pred_logits = None
         self._pred_probs = None
@@ -130,10 +141,14 @@ class TextClassifier(object):
                 immediately after graph has been built.
 
             **kwargs: keywords arguments to pass to `tf.train.saver()`.
+
+        Returns:
+
+            None
         """
-        assert self.config is not None, '`self.build_graph()` can only be invoked when `self.config` is Not None.'
-        assert self.config.n_examples is not None, 'self.config.n_examples is None, but must be a positive integer.'
-        assert self.config.n_features is not None, 'self.config.n_features is None, but must be a positive integer.'
+        assert self.config is not None, ('`self.config` must be non-null when '
+                                         '`self.build_graph()` is invoked, but `self.config` is None.')
+        self.config._validate()
         if self.verbosity > 0:
             print('Initializing graph...')
         self._global_step = tf.Variable(0, dtype=tf.int32, trainable=False, name='global_step')
@@ -276,6 +291,9 @@ class TextClassifier(object):
                 with the graph structure (e.g. `n_classes`, ...) before beginning
                 training.
         """
+        assert self.config is not None, ('`self.config` must be non-null when '
+                                         '`self.train()` is invoked, but `self.config` is None.')
+        self.config._validate()
         assert self._built, '`self.build()` must be invoked before `self.train()`.'
         assert inputs.shape[0] == seqlens.shape[0], 'seqlens must have same shape as inputs.'
         assert inputs.shape[0] == labels.shape[0], 'labels must have same shape as inputs.'
@@ -420,8 +438,7 @@ class TextClassifier(object):
                 which requires the user to have knowledge of the implementation
                 details of the graph. This is less than ideal...
         """
-        if not self._built:
-            raise RuntimeError('self.build() must be invoked before self.predict().')
+        assert self._built, '`self.build()` must be invoked before `self.predict()`.'
         pred_logits = self._predict_batch(*args, **kwargs)
         pred_probs = None
         pred_classes = None

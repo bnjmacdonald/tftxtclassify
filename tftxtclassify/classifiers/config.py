@@ -20,14 +20,14 @@ class ClassifierConfig(object):
 
     Attributes:
 
+        classifier: str. Type of classifier.
+
         batch_normalize_embeds: bool = False. Use batch normalization in token
             embeddings layer.
 
         batch_normalize_layers: bool = False. Use batch normalization in each layer.
 
         batch_size: int = 100. Size of each batch of examples for training.
-
-        classifier: str = None. Type of classifier.
 
         class_weights: np.array = None. Weights for each class. If None, equal
             weights are used. Shape: (n_classes,). If None, equal class weights
@@ -90,10 +90,10 @@ class ClassifierConfig(object):
             to `self`.
     """
     def __init__(self,
+                 classifier: str,
                  batch_normalize_embeds: bool = False,
                  batch_normalize_layers: bool = False,
                  batch_size: int = 1000,
-                 classifier: str = None,
                  class_weights: np.array = None,
                  clip_gradients: bool = False,
                  dropout_p_keep: float = None,
@@ -114,17 +114,9 @@ class ClassifierConfig(object):
                  save_every: int = 100,
                  use_pretrained: bool = False,
                  **kwargs) -> None:
-        if class_weights is not None:
-            assert len(class_weights) == n_classes, f'len(class_weights) must equal n_classes, but {len(class_weights)} != {n_classes}.'
         # deterministically defined properties.
         self.use_dropout = bool(dropout_p_keep)
         self.use_class_weights = class_weights is not None
-        if not use_pretrained:
-            # when not using pretrained embeddings, then embeddings must be trainable.
-            if not embed_trainable:
-                warnings.warn('`embed_trainable` must be True when `use_pretrained=False`. '
-                              'Changing `embed_trainable` to True.', RuntimeWarning)
-            embed_trainable = True
         self.batch_normalize_embeds = batch_normalize_embeds
         self.batch_normalize_layers = batch_normalize_layers
         self.classifier = classifier
@@ -151,6 +143,7 @@ class ClassifierConfig(object):
         # other keyword args...
         for key, value in kwargs.items():
             setattr(self, key, value)
+        self._validate()
 
 
     def __str__(self):
@@ -158,6 +151,43 @@ class ClassifierConfig(object):
         for key in sorted(self.__dict__.keys()):
             s += (f'{key}: {getattr(self, key)}; ')
         return s
+
+
+    def _validate(self) -> None:
+        """validates model configuration.
+        
+        Validates attributes in `self.config` that are needed for the
+        `build_graph`, `train`, and other methods in `TextClassifier` (and child
+        classes) to execute properly.
+
+        Returns:
+
+            None.
+        """
+        # raises warning if outpath not in `config`.
+        if not hasattr(self, 'outpath'):
+            warnings.warn('`outpath` does not exist in `self.config`. Classifier '
+                            'performance will not be saved.', RuntimeWarning)
+        # raises error if `outpath` does not exist.
+        elif not os.path.exists(self.outpath):
+            raise FileNotFoundError(f'{self.outpath} does not exist.')
+        # required attributes.
+        required_attrs = ['n_examples', 'n_features', 'n_classes', 'vocab_size']
+        for attr in required_attrs:
+            assert hasattr(self, attr) and getattr(self, attr) is not None, \
+                f'`self.config.{attr}` must exist, but is None or does not exist.'
+        # number of classes must be equal to length of class_weights.
+        if self.class_weights is not None:
+            assert len(self.class_weights) == self.n_classes, \
+                f'`len(class_weights)` must equal `n_classes`, but {len(self.class_weights)} != {self.n_classes}.'
+        # when not using pretrained embeddings, then embeddings must be trainable.
+        if not self.use_pretrained:
+            if not self.embed_trainable:
+                warnings.warn('`embed_trainable` must be True when `use_pretrained=False`. '
+                              'Changing `embed_trainable` to True.', RuntimeWarning)
+            self.embed_trainable = True
+        return None
+
 
     def save(self, path: str) -> None:
         """saves config to disk in json format.
@@ -355,7 +385,9 @@ class CNNClassifierConfig(ClassifierConfig):
 class RNNCNNClassifierConfig(RNNClassifierConfig, CNNClassifierConfig):
     """configuration for a tf RNN-CNN classifier.
 
-    **kwargs: other attributes to pass to `ClassifierConfig.__init__(**kwargs)`.
+    Attributes:
+        
+        **kwargs: other attributes to pass to `ClassifierConfig.__init__(**kwargs)`.
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -372,12 +404,18 @@ def get_config_class(classifier: str):
     """retrieves the appropriate uninitialized ClassifierConfig object given a
     classifier type.
 
-    Example::
+    Examples::
 
-        >>> get_config_class('rnn')
+        >>> # Example 1: retrieve RNN config class.
+        >>> cls = get_config_class('rnn')
+        >>> print(cls)
         <class 'tftxtclassify.classifiers.config.RNNClassifierConfig'>
-        >>> get_config_class('siamese-cnn')
+        >>> config = cls()  # initialize RNN config
+        >>> # Example 2: retrieve Siamese-CNN config class.
+        >>> cls = get_config_class('siamese-cnn')
+        >>> print(cls)
         <class 'tftxtclassify.classifiers.config.CNNClassifierConfig'>
+        >>> config = cls()  # initialize CNN config
     """
     classes = {
         'mlp': MLPClassifierConfig,

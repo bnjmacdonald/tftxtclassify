@@ -132,6 +132,9 @@ class SiameseTextClassifier(TextClassifier):
 
             None.
         """
+        assert self.config is not None, ('`self.config` must be non-null when '
+                                         '`self.train()` is invoked, but `self.config` is None.')
+        self.config._validate()
         assert self._built, '`self.build()` must be invoked before `self.train()`.'
         assert inputs1.shape[0] == inputs2.shape[0], 'inputs1 and inputs2 must have same shape.'
         assert inputs1.shape[0] == seqlens1.shape[0], 'seqlens1 must have same shape as inputs1.'
