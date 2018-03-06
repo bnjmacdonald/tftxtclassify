@@ -25,9 +25,10 @@ class TextClassifierTests(unittest.TestCase):
     def setUp(self):
         np.random.seed(SEED)
         tf.reset_default_graph()
-        self.outpath = os.path.join(settings.OUTPUT_DIR, 'tests', 'classifiers')
+        self.outpath = os.path.join(settings.OUTPUT_PATH, 'tests', 'classifiers')
         if os.path.exists(self.outpath):
             shutil.rmtree(self.outpath)
+        os.makedirs(self.outpath)
         self.verbosity = 2
         self.vocab_size = 50
         self.vocabulary = np.random.choice(list(string.ascii_letters), size=self.vocab_size, replace=False)
@@ -56,15 +57,16 @@ class TextClassifierTests(unittest.TestCase):
             try:
                 tf.reset_default_graph()
                 with tf.Session() as sess:
-                    # classifier = 'rnn'
-                    config = get_config_class(classifier)()
-                    config.classifier = classifier
-                    config.n_examples = self.inputs.shape[0]
-                    config.n_features = self.inputs.shape[1]
+                    config = get_config_class(classifier)(
+                        classifier=classifier,
+                        outpath=self.outpath,
+                        n_examples=self.inputs.shape[0],
+                        n_features=self.inputs.shape[1],
+                        vocab_size=self.vocabulary.shape[0]
+                    )
                     clf = TextClassifier(
                         sess=sess,
                         config=config,
-                        outpath=self.outpath,
                         vocabulary=self.vocabulary,
                         verbosity=self.verbosity
                     )
@@ -88,17 +90,18 @@ class TextClassifierTests(unittest.TestCase):
                 tf.reset_default_graph()
                 with tf.Session() as sess:
                     config = get_config_class(classifier)(
+                        classifier=classifier,
+                        outpath=self.outpath,
+                        n_examples=self.inputs.shape[0],
+                        n_features=self.inputs.shape[1],
                         n_classes=np.unique(self.labels).shape[0],
                         n_epochs=2,
                         batch_size=32,
+                        vocab_size=self.vocabulary.shape[0]
                     )
-                    config.classifier = classifier
-                    config.n_examples = self.inputs.shape[0]
-                    config.n_features = self.inputs.shape[1]
                     clf = TextClassifier(
                         sess=sess,
                         config=config,
-                        outpath=self.outpath,
                         vocabulary=self.vocabulary,
                         verbosity=self.verbosity
                     )
@@ -123,19 +126,20 @@ class TextClassifierTests(unittest.TestCase):
                 tf.reset_default_graph()
                 with tf.Session() as sess:
                     config = get_config_class(classifier)(
+                        classifier=classifier,
+                        outpath=self.outpath,
+                        n_examples=self.inputs.shape[0],
+                        n_features=self.inputs.shape[1],
                         n_classes=np.unique(self.labels).shape[0],
                         class_weights=class_weights,
                         n_epochs=50,
                         batch_size=32,
                         activation='nn.relu',
+                        vocab_size=self.vocabulary.shape[0]
                     )
-                    config.classifier = classifier
-                    config.n_examples = self.inputs.shape[0]
-                    config.n_features = self.inputs.shape[1]
                     clf = TextClassifier(
                         sess=sess,
                         config=config,
-                        outpath=self.outpath,
                         vocabulary=self.vocabulary,
                         verbosity=self.verbosity
                     )
@@ -177,19 +181,20 @@ class TextClassifierTests(unittest.TestCase):
                 tf.reset_default_graph()
                 with tf.Session() as sess:
                     config = get_config_class(classifier)(
+                        classifier=classifier,
+                        outpath=self.outpath,
+                        n_examples=self.inputs.shape[0],
+                        n_features=self.inputs.shape[1],
                         n_classes=np.unique(self.multi_labels).shape[0],
                         class_weights = class_weights,
                         n_epochs=50,
                         batch_size=32,
                         activation='nn.relu',
+                        vocab_size=self.vocabulary.shape[0]
                     )
-                    config.classifier = classifier
-                    config.n_examples = self.inputs.shape[0]
-                    config.n_features = self.inputs.shape[1]
                     clf = TextClassifier(
                         sess=sess,
                         config=config,
-                        outpath=self.outpath,
                         vocabulary=self.vocabulary,
                         verbosity=self.verbosity
                     )
@@ -217,7 +222,6 @@ class TextClassifierTests(unittest.TestCase):
                 print(err)
                 traceback.print_exc()
                 self.fail('self.build_graph() raised an error.')
-
 
 
 if __name__ == '__main__':

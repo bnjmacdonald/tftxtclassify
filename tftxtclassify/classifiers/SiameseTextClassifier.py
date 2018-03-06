@@ -141,7 +141,7 @@ class SiameseTextClassifier(TextClassifier):
         if self.verbosity > 0:
             print(f'Training classifier with {inputs1.shape[0]} training examples, '
                   f'{inputs1.shape[1]} features per input, and '
-                  f'{self.vocab_size} unique feature values (vocab size).')
+                  f'{self.config.vocab_size} unique feature values (vocab size).')
             if self.verbosity > 1:
                 print(self.config)
         # initializes data batches.

@@ -1,6 +1,7 @@
 """configuration for a tf text classifier.
 """
 
+import os
 import warnings
 import json
 from typing import List, Callable, Union
@@ -77,6 +78,8 @@ class ClassifierConfig(object):
         online_sample_every: int = 5. Online sample every N minibatches. This is
             used to restrict how often online sampling is done.
 
+        outpath: str = None. Path to where graph should be saved.
+
         save_every: int = 100. Save after every N training steps.
 
         use_dropout: bool = False. Use neuron dropout for regularization.
@@ -107,6 +110,7 @@ class ClassifierConfig(object):
                  online_sample_n_keep: int = 100,
                  online_sample_after: int = 5,
                  online_sample_every: int = 5,
+                 outpath: str = None,
                  save_every: int = 100,
                  use_pretrained: bool = False,
                  **kwargs) -> None:
@@ -140,6 +144,7 @@ class ClassifierConfig(object):
         self.online_sample_n_keep = online_sample_n_keep
         self.online_sample_after = online_sample_after
         self.online_sample_every = online_sample_every
+        self.outpath = outpath
         self.dropout_p_keep = dropout_p_keep
         self.save_every = save_every
         self.use_pretrained = use_pretrained

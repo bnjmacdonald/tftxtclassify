@@ -82,9 +82,8 @@ class TextClassifier(object):
 
     def __init__(self,
                  sess: tf.Session,
-                 outpath: str,
-                 vocabulary: np.array,
                  config: ClassifierConfig = None,
+                 vocabulary: np.array = None,
                  verbosity: int = 0):
         """initializes a text classifier.
 
@@ -100,23 +99,10 @@ class TextClassifier(object):
             config: ClassifierConfig = None. Configuration object containing
                 classifier configuration options (e.g. n_epochs, n_layers, etc.).
         """
-        if not os.path.exists(outpath):
-            os.makedirs(outpath)
-        self._built = False
         self.sess = sess
-        self.outpath = outpath
         self.config = config
         self.vocabulary = vocabulary
-        self.vocab_size = vocabulary.shape[0]
         self.verbosity = verbosity
-        # placeholders
-        # self._labels_placeholder = None
-        # self._dropout_placeholder = None
-        # self._token_embeds_placeholder = None
-        # tensors
-        # self._inputs_batch = None
-        # self._seqlens_batch = None
-        # self._labels_batch = None
         self._outputs = None
         self._pred_logits = None
         self._pred_probs = None
@@ -183,23 +169,20 @@ class TextClassifier(object):
     def save(self) -> None:
         """saves classifier and classifier configuration to disk.
 
-        Creates self.outpath directory if it does not exist.
-
         Returns:
 
             None.
         """
-        if not os.path.exists(self.outpath):
-            os.makedirs(self.outpath)
-        self._saver.save(self.sess, os.path.join(self.outpath, 'step'), global_step=self._global_step)
-        self.config.save(os.path.join(self.outpath, 'config.json'))
+        self._saver.save(self.sess, os.path.join(self.config.outpath, 'step'), global_step=self._global_step)
+        self.config.save(os.path.join(self.config.outpath, 'config.json'))
         if self.verbosity > 0:
-            print(f'\nSaved classifier to {self.outpath}...')
+            print(f'\nSaved classifier to {self.config.outpath}...')
         return None
 
 
     def restore(self, **kwargs) -> None:
-        """attempts to restore existing graph and parameter states within self.outpath.
+        """attempts to restore existing graph and parameter states within
+        `self.config.outpath`.
 
         Arguments:
 
@@ -209,15 +192,15 @@ class TextClassifier(object):
 
             None.
         """
-        if not os.path.exists(self.outpath):
-            warnings.warn(f'No classifier to restore in {self.outpath}.', RuntimeWarning)
+        if not os.path.exists(self.config.outpath):
+            warnings.warn(f'No classifier to restore in {self.config.outpath}.', RuntimeWarning)
             return None
         # retrieves checkpoint
-        ckpt = tf.train.get_checkpoint_state(os.path.dirname(os.path.join(self.outpath, 'checkpoint')))
+        ckpt = tf.train.get_checkpoint_state(os.path.dirname(os.path.join(self.config.outpath, 'checkpoint')))
         if ckpt and ckpt.model_checkpoint_path:
             # loads config.
             try:
-                config = load_config(os.path.join(self.outpath, 'config.json'))
+                config = load_config(os.path.join(self.config.outpath, 'config.json'))
                 # updates config with new config params, if new configuration has
                 # been given.
                 if self.config is not None:
@@ -240,7 +223,7 @@ class TextClassifier(object):
                     if self.verbosity > 1:
                         print(f'Updated config: {self.config.__dict__}')
             except FileNotFoundError:
-                warnings.warn(f'config.json not found in {self.outpath}.')
+                warnings.warn(f'config.json not found in {self.config.outpath}.')
             # builds graph, initializes variables, initializes self._saver.
             # NOTE: do I actually need to rebuild the whole graph in order to
             # restore? Or do I just need to init variables and create self._saver?
@@ -248,7 +231,7 @@ class TextClassifier(object):
             # restores clssifier state.
             self._saver.restore(self.sess, ckpt.model_checkpoint_path)
             if self.verbosity > 0:
-                print(f'Restored classifier from {self.outpath}.')
+                print(f'Restored classifier from {self.config.outpath}.')
         return None
 
 
@@ -300,7 +283,7 @@ class TextClassifier(object):
         if self.verbosity > 0:
             print(f'Training classifier with {inputs.shape[0]} training examples, '
                   f'{inputs.shape[1]} features per input, and '
-                  f'{self.vocab_size} unique feature values (vocab size).')
+                  f'{self.config.vocab_size} unique feature values (vocab size).')
             if self.verbosity > 1:
                 print(self.config)
         # initializes data batches.
@@ -621,8 +604,9 @@ class TextClassifier(object):
         how_choices = ['soft', 'hard', 'hard_positives', 'hard_negatives']
         assert how in how_choices, f'`how` must be in {how_choices}, but received {how}.'
         assert n_keep < labels.shape[0], f'`n_keep` must be less than batch size, but {n_keep} >= {labels.shape[0]}.'
-        assert np.unique(labels).shape[0] == 2, (f'online sampling currently only works when n_classes == 2, '
-                                                 f'but found {np.unique(labels).shape[0]} unique classes in `labels`.')
+        assert self.config.n_classes == 2 and np.unique(labels).shape[0] == 2, \
+            (f'online sampling currently only works when n_classes == 2, '
+             f'but found {np.unique(labels).shape[0]} unique classes in `labels`.')
         with tf.name_scope('online_sample'):
             if how == 'soft':
                 # predicts logits for each example in minibatch.
@@ -784,7 +768,7 @@ class TextClassifier(object):
             if self.config.use_pretrained:
                 self._token_embeds_placeholder = tf.placeholder(
                     tf.float32,
-                    shape=[self.vocab_size, self.config.embed_size],
+                    shape=[self.config.vocab_size, self.config.embed_size],
                     name='placeholder'
                 )
                 kwargs.update({
@@ -795,7 +779,7 @@ class TextClassifier(object):
             else:
                 kwargs.update({
                     'initializer': tf.random_uniform_initializer(-0.1, 0.1),
-                    'shape': [self.vocab_size, self.config.embed_size],
+                    'shape': [self.config.vocab_size, self.config.embed_size],
                     'trainable': True
                 })
             tf.get_variable(**kwargs)
@@ -1394,7 +1378,7 @@ class TextClassifier(object):
                       f'\trecall on {scope_name} set: {perf["recall"]:3f}\n'
                       f'\taccuracy on {scope_name} set: {perf["accuracy"]:3f}\n'
                       f'\tconfusion matrix on {scope_name} set:\n{perf["confusion"]}\n')
-                heatmap_confusion(perf['confusion'], os.path.join(self.outpath, f'confusion_matrix_{scope_name}.png'))
+                heatmap_confusion(perf['confusion'], os.path.join(self.config.outpath, f'confusion_matrix_{scope_name}.png'))
             # if NOT the validation set, then print out examples of correct and incorrect predictions.
             if not is_validation and self.verbosity > 1 and len(kwargs):
                 self._print_predictions(labels=labels, pred_classes=pred_classes, pred_logits=pred_logits, correct=True, **kwargs)
