@@ -75,7 +75,7 @@ def _build_layers_space(space: str, n_layers: int):
 
         search_space: dict. Hyperopt search space for a single layer.
     """
-    assert n_layers > 0, f"n_layers must be > 0 and must be , but received {n_layers}"
+    assert n_layers > 0, f"n_layers must be > 0, but received {n_layers}"
     if space in [None, 'default']:
         n_filters_min, n_filters_max = 4, 128
         filter_size_min, filter_size_max = 3, 15
