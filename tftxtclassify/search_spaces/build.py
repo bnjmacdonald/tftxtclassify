@@ -45,5 +45,5 @@ def build_search_space(classifier: str, space: str = None) -> dict:
     elif 'cnn' in classifier:
         return cnn.build_search_space(space)
     else:
-        raise RuntimeError(f'{classifier} not recognized. Must be one of: ["siamese_rnn", "siamese_cnn"].')
+        raise RuntimeError(f'{classifier} not recognized. Must contain "mlp", "rnn", or "cnn".')
     return None
