@@ -120,6 +120,8 @@ networks in tensorflow on text classification tasks.
 
         _perf_summary_op: tf.Tensor. Performance summary for Tensorboard (accuracy,
             f1, ...).
+        
+        _preds_summary_op: tf.Tensor. Summary of predictions (e.g. logits).
 
         _trainable_params_summary_op: tf.Tensor. Summary of trainable parameters
             for Tensorboard.
@@ -176,6 +178,7 @@ networks in tensorflow on text classification tasks.
         self._perf_summary_op = None
         self._trainable_params_summary_op = None
         self._nontrainable_params_summary_op = None
+        self._preds_summary_op = None
         # FileWriter and saver
         self._writer = None
         self._saver = None
@@ -1424,11 +1427,12 @@ networks in tensorflow on text classification tasks.
                 scope_name = 'train'
             with tf.variable_scope(scope_name, reuse=True):
                 loss = tf.get_variable('loss')
-                new_loss, pred_classes, loss_summary, perf_summary, step = self.sess.run(
+                new_loss, pred_classes, loss_summary, perf_summary, preds_summary, step = self.sess.run(
                     [self._loss_op,
                      self._pred_classes,
                      self._loss_summary_op[scope_name],
                      self._perf_summary_op[scope_name],
+                     self._preds_summary_op[scope_name],
                      self._global_step],
                     feed_dict=feed_dict
                 )
@@ -1437,6 +1441,7 @@ networks in tensorflow on text classification tasks.
                 perf['loss'] = loss
                 if self._writer is not None:
                     self._writer.add_summary(perf_summary, step)
+                    self._writer.add_summary(preds_summary, step)
                     if is_validation:
                         self._writer.add_summary(loss_summary, step)
             if self.verbosity > 0:
@@ -1476,6 +1481,9 @@ networks in tensorflow on text classification tasks.
 
             TODO: only print out top N predicted values in the case of multi-class
                 models with many classes.
+            
+            TODO: log these correct/incorrect predictions to tensorboard instead.
+                See, e.g., https://stackoverflow.com/questions/46220808/how-do-i-construct-an-arbitrary-text-summary-in-tensorflow
         """
         if self.vocabulary is None:
             warnings.warn('Cannot print original text of each example, since `self.vocabulary` '
@@ -1552,14 +1560,17 @@ networks in tensorflow on text classification tasks.
     def _add_summary_ops(self) -> None:
         self._loss_summary_op = {}
         self._perf_summary_op = {}
+        self._preds_summary_op = {}
         with tf.variable_scope('train', reuse=True):
             self._loss_summary_op['train'] = self._add_loss_summary_op()
             self._perf_summary_op['train'] = self._add_performance_summary_op()
+            self._preds_summary_op['train'] = self._add_preds_summary_op()
         with tf.variable_scope('validation', reuse=True):
             self._loss_summary_op['validation'] = self._add_loss_summary_op()
             self._perf_summary_op['validation'] = self._add_performance_summary_op()
+            self._preds_summary_op['validation'] = self._add_preds_summary_op()
         self._trainable_params_summary_op = self._add_trainable_params_summary_op()
-        self._nontrainable_params_summary_op = self._add_nontrainable_params_summary_op()
+        self._nontrainable_params_summary_op = self._add_nontrainable_params_summary_op()        
         return None
 
 
@@ -1610,7 +1621,28 @@ networks in tensorflow on text classification tasks.
         with tf.name_scope('nontrainable'):
             summaries = [
                 tf.summary.scalar('gradient_norm', self._grad_norm),
-                # tf.summary.scalar('pred_logits', self._pred_logits),
             ]
+            summary_op = tf.summary.merge(summaries)
+        return summary_op
+
+
+    def _add_preds_summary_op(self):
+        """Adds summary plots to tensorboard for predictions.
+        """
+        with tf.name_scope('predict'):
+            # for each label, creates a summary histogram of the distribution
+            # of each example's logit.
+            summaries = []
+            for i in range(self.config.n_classes):
+                label = tf.constant(i, dtype=tf.int64)
+                if self.config.n_classes == 2:
+                    label_logits = self._pred_logits
+                else:
+                    # grabs the i-th column of logits
+                    label_logits = tf.reshape(tf.slice(self._pred_logits, [0, i], [-1, 1]), [-1])
+                # grabs only the logits for label i.
+                where = tf.where(tf.equal(self._labels_batch, label))
+                label_logits = tf.gather(label_logits, where)
+                summaries.append(tf.summary.histogram(f'pred_logits_label{i}', label_logits))
             summary_op = tf.summary.merge(summaries)
         return summary_op
