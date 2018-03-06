@@ -1352,25 +1352,31 @@ networks in tensorflow on text classification tasks.
             feed_dict.update({self._class_weights_placeholder: self.config.class_weights})
         with tf.variable_scope('train', reuse=True):
             loss = tf.get_variable('loss')
-            (_,
-             new_loss,
-             loss_summary,
-             trainable_params_summary,
-             nontrainable_params_summary,
-             step) = self.sess.run(
+            _, new_loss, loss_summary, step = self.sess.run(
                 [self._train_op,
                  self._loss_op,
                  self._loss_summary_op['train'],
-                 self._trainable_params_summary_op,
-                 self._nontrainable_params_summary_op,
                  self._global_step],
                 feed_dict=feed_dict
             )
             loss = self.sess.run(loss.assign(new_loss))
             if self._writer is not None:
+                # add loss summary.
                 self._writer.add_summary(loss_summary, step)
-                self._writer.add_summary(trainable_params_summary, step)
-                self._writer.add_summary(nontrainable_params_summary, step)
+                if (step + 1) % self.config.eval_every == 0:
+                    # add trainable/nontrainable param summaries.
+                    try:
+                        # NOTE: is feed_dict necessary? This may be highly inefficient.
+                        trainable_params_summary, nontrainable_params_summary = self.sess.run(
+                            [self._trainable_params_summary_op, self._nontrainable_params_summary_op],
+                            # feed_dict=feed_dict
+                        )
+                        self._writer.add_summary(trainable_params_summary, step)
+                        self._writer.add_summary(nontrainable_params_summary, step)
+                    except Exception as err:
+                        if self.verbosity > 1:
+                            warnings.warn(f'Failed to add loss/trainable/nontrainable '
+                                          f'params summary. Reason: {err}.', RuntimeWarning)
         return loss, step
 
 

@@ -98,7 +98,9 @@ class TextClassifierTests(unittest.TestCase):
                         n_classes=np.unique(self.labels).shape[0],
                         n_epochs=2,
                         batch_size=32,
-                        vocab_size=self.vocabulary.shape[0]
+                        vocab_size=self.vocabulary.shape[0],
+                        save_every=1,
+                        eval_every=1
                     )
                     clf = TextClassifier(
                         sess=sess,
