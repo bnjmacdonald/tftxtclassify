@@ -408,6 +408,6 @@ def load_config(path: str) -> ClassifierConfig:
         config_json = json.load(f)
     try:
         cls = get_config_class(config_json['classifier'])
-    except (KeyError, AssertionError) as err:
-        cls = ConfigClassifier
+    except (KeyError, AssertionError):
+        cls = ClassifierConfig
     return cls(**config_json)
